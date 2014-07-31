@@ -1,0 +1,39 @@
+# vim temp file
+*.swp
+*.swo
+*.swn
+
+# auto generated files (autotool, ./configure, gnu make)
+Makefile.in
+Makefile.vex.in
+aclocal.m4
+config.h.in
+config.h
+valgrind.spec
+configure
+
+# subdirectory `docs/`
+docs/html/
+docs/*.1
+docs/index.pdf
+docs/index.ps
+
+# unknown, add to .gitignore temporarily
+VEX/pub/libvex_guest_offsets.h
+memcheck/tests/filter_memcpy
+memcheck/tests/strchr.stderr.exp-darwin
+none/tests/mips32/mips32_dsp.stdout.exp
+none/tests/mips32/mips32_dsp.stdout.exp-mips32
+none/tests/mips32/mips32_dspr2.stdout.exp-mips32
+perf/vg_perf
+tests/vg_regtest
+
+FAQ.txt
+compile
+config.guess
+config.sub
+depcomp
+missing
+
+
+
