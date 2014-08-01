@@ -66,6 +66,10 @@
 
 #include "config.h"
 
+#ifdef RECORD_REPLAY
+#include "pub_core_recordreplay.h"
+#include "syswrapRR-generic.c"
+#endif
 
 /* Returns True iff address range is something the client can
    plausibly mess with: all of it is either already belongs to the

@@ -41,6 +41,9 @@
 
 #include "priv_aspacemgr.h"
 #include "config.h"
+#ifdef RECORD_REPLAY
+#include "pub_core_recordreplay.h"
+#endif
 
 
 /* Note: many of the exported functions implemented below are
@@ -1682,6 +1685,15 @@ Addr VG_(am_startup) ( Addr sp_at_startup )
                                            + VKI_PAGE_SIZE;
 
 #endif /* #else of 'defined(VGO_darwin)' */
+
+
+#ifdef RECORD_REPLAY
+   /* Remember these two variables in record; adjust their values in replay */ 
+   /* Both of them are dependent on sp_at_startup, but we have no way to 
+      Record/Replay sp_at_startup, because it is out of our control and it 
+      seems its value is set by dynamic linker and varies in every execution. */
+   VG_(RR_InitState_MemLayout)(&aspacem_vStart, &suggested_clstack_top);
+#endif
 
    aspacem_assert(VG_IS_PAGE_ALIGNED(aspacem_minAddr));
    aspacem_assert(VG_IS_PAGE_ALIGNED(aspacem_maxAddr + 1));

@@ -53,6 +53,9 @@
 
 #include "priv_types_n_macros.h"
 #include "priv_syswrap-main.h"
+#ifdef RECORD_REPLAY
+#include "pub_core_recordreplay.h"
+#endif
 
 #if defined(VGO_darwin)
 #include "priv_syswrap-darwin.h"
@@ -1324,6 +1327,34 @@ static void ensure_initialised ( void )
    }
 }
 
+#ifdef RECORD_REPLAY
+/*
+   For the syscalls that we have not wrapped, or that should not be wrapped,
+   return a value indicating it should be processed by record/replay.
+   Some specific system calls may be better serviced by OS though it 
+   could also be replayed. For example, a stdout or stderr write can go to
+   OS, then the replay seems better. 
+ */
+static Bool should_not_record_replay(UWord sysno, SyscallArgs *arrghs)
+{
+   const SyscallTableEntry* ent;
+
+   ent = get_syscall_entry(sysno);
+   if(VG_(clo_record_replay) != RECORDONLY && VG_(clo_record_replay) != REPLAYONLY) {
+      return 1;
+   }
+   if(ent->record_replay == NULL) {
+      return 1;
+   }
+   if( sysno == __NR_write && (ARG1 == 1 || ARG1 == 2) ) {
+      //console write. stdout or stderr
+      return 1;
+   } else {
+      return 0;
+   }
+}
+#endif
+
 /* --- This is the main function of this file. --- */
 
 void VG_(client_syscall) ( ThreadId tid, UInt trc )
@@ -1517,6 +1548,14 @@ void VG_(client_syscall) ( ThreadId tid, UInt trc )
                     &tmpv[0], sizeof(tmpv)/sizeof(tmpv[0]));
    }
 
+#ifdef RECORD_REPLAY
+   /* 
+    * Log the guest cpu state in record; check whether the state is the same as the logged one in replay. 
+    * The syscall arguments could be derived from the arch registers.
+    */
+   VG_(RR_Syscall_VexGuestArchState)(tid, sysno, &tst->arch.vex);
+#endif
+
    vg_assert(ent);
    vg_assert(ent->before);
    (ent->before)( tid,
@@ -1613,9 +1652,17 @@ void VG_(client_syscall) ( ThreadId tid, UInt trc )
             that do_syscall_for_client only touches thread-local
             state. */
 
+#ifdef RECORD_REPLAY
+         if(VG_(clo_record_replay) != REPLAYONLY || should_not_record_replay(sysno, &sci->args)) {
+            /* Do the call, which operates directly on the guest state,
+               not on our abstracted copies of the args/result. */
+            do_syscall_for_client(sysno, tst, &mask);
+         }
+#else
          /* Do the call, which operates directly on the guest state,
             not on our abstracted copies of the args/result. */
          do_syscall_for_client(sysno, tst, &mask);
+#endif
 
          /* do_syscall_for_client may not return if the syscall was
             interrupted by a signal.  In that case, flow of control is
@@ -1634,6 +1681,34 @@ void VG_(client_syscall) ( ThreadId tid, UInt trc )
 
          /* Reacquire the lock */
          VG_(acquire_BigLock)(tid, "VG_(client_syscall)[async]");
+
+#ifdef RECORD_REPLAY
+         if(!should_not_record_replay(sysno, &sci->args)){
+            ULong sys_ret = 0;
+            SyscallStatus temp_status;
+
+            if(VG_(clo_record_replay) == RECORDONLY) {
+               /* Extract the syscall status from the guest state. */
+               getSyscallStatusFromGuestState( &temp_status, &tst->arch.vex );
+               sys_ret = 
+                  sr_isError(temp_status.sres) ? (ULong) - sr_Err(temp_status.sres)
+                                           	   : (ULong)sr_Res(temp_status.sres);
+            }
+            /* record/replay syscall return value and  memory side effects */
+            ent->record_replay(tid, &sys_ret, &sci->args);
+            if(VG_(clo_record_replay) == REPLAYONLY){
+               temp_status.what = SsComplete;
+#if defined(VGP_x86_linux)
+               temp_status.sres = VG_(mk_SysRes_x86_linux)(sys_ret); 
+#elif defined(VGP_amd64_linux)
+               temp_status.sres = VG_(mk_SysRes_amd64_linux)(sys_ret); 
+#else
+#error "unsupported arch"
+#endif
+               putSyscallStatusIntoGuestState( tid ,&temp_status, &tst->arch.vex );
+            }
+         }
+#endif
 
          /* Even more impedance matching.  Extract the syscall status
             from the guest state. */
@@ -1658,6 +1733,34 @@ void VG_(client_syscall) ( ThreadId tid, UInt trc )
 
       } else {
 
+#ifdef RECORD_REPLAY
+         SysRes sres;
+
+         if(VG_(clo_record_replay) != REPLAYONLY || should_not_record_replay(sysno, &sci->args)) {
+            /* The pre-handler may have modified the syscall args, but
+               since we're passing values in ->args directly to the
+               kernel, there's no point in flushing them back to the
+               guest state.  Indeed doing so could be construed as
+               incorrect. */
+            sres = VG_(do_syscall)(sysno, sci->args.arg1, sci->args.arg2, 
+                                        sci->args.arg3, sci->args.arg4, 
+                                        sci->args.arg5, sci->args.arg6,
+                                        sci->args.arg7, sci->args.arg8 );
+         }
+
+         if(!should_not_record_replay(sysno, &sci->args)){
+            ULong sys_ret = 0;
+            if(VG_(clo_record_replay) == RECORDONLY) {
+               sys_ret =  sr_isError(sres) ? (ULong) - sr_Err(sres)
+                                       	   : (ULong)sr_Res(sres);
+            }
+            /* record/replay syscall return value and memory side effects */
+            ent->record_replay(tid, &sys_ret, &sci->args);
+            if(VG_(clo_record_replay) == REPLAYONLY)
+               /* ret value is written into args.sysno in record_replay wrapper */
+               sres = VG_(mk_SysRes_x86_linux)(sys_ret); 
+         }
+#else
          /* run the syscall directly */
          /* The pre-handler may have modified the syscall args, but
             since we're passing values in ->args directly to the
@@ -1669,6 +1772,7 @@ void VG_(client_syscall) ( ThreadId tid, UInt trc )
                                      sci->args.arg3, sci->args.arg4, 
                                      sci->args.arg5, sci->args.arg6,
                                      sci->args.arg7, sci->args.arg8 );
+#endif
          sci->status = convert_SysRes_to_SyscallStatus(sres);
 
          /* Be decorative, if required. */

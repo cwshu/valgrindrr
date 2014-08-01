@@ -739,6 +739,13 @@ VexTranslateResult LibVEX_Translate ( VexTranslateArgs* vta )
    vexAllocSanityCheck();
 
    /* Get the thing instrumented. */
+#ifdef RECORD_REPLAY
+   if (vta->instrument0)
+      irsb = vta->instrument0(vta->callback_opaque,
+                              irsb, guest_layout, 
+                              vta->guest_extents,
+                              guest_word_type, host_word_type);
+#endif
    if (vta->instrument1)
       irsb = vta->instrument1(vta->callback_opaque,
                               irsb, guest_layout, 
@@ -762,12 +769,20 @@ VexTranslateResult LibVEX_Translate ( VexTranslateArgs* vta )
       vex_printf("\n");
    }
 
+#ifdef RECORD_REPLAY
+   if (vta->instrument0 || vta->instrument1 || vta->instrument2)
+#else
    if (vta->instrument1 || vta->instrument2)
+#endif
       sanityCheckIRSB( irsb, "after instrumentation",
                        True/*must be flat*/, guest_word_type );
 
    /* Do a post-instrumentation cleanup pass. */
+#ifdef RECORD_REPLAY
+   if (vta->instrument0 || vta->instrument1 || vta->instrument2) {
+#else
    if (vta->instrument1 || vta->instrument2) {
+#endif
       do_deadcode_BB( irsb );
       irsb = cprop_BB( irsb );
       do_deadcode_BB( irsb );

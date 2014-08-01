@@ -63,6 +63,10 @@
 #include "priv_syswrap-linux-variants.h" /* decls of linux variant wrappers */
 #include "priv_syswrap-main.h"
 
+#ifdef RECORD_REPLAY
+#include "pub_core_recordreplay.h"
+#include "syswrapRR-x86-linux.c"
+#endif
 
 /* ---------------------------------------------------------------------
    clone() handling
@@ -330,6 +334,13 @@ static SysRes do_clone ( ThreadId ptid,
             ML_(start_thread_NORETURN), stack, flags, &VG_(threads)[ctid],
             child_tidptr, parent_tidptr, NULL
          );
+#ifdef RECORD_REPLAY
+   /* In record, log eax value; in replay, feed recorded value back into eax */
+   VG_(RR_Thread_Create)(ptid, ctid, &eax);
+   if (flags & VKI_CLONE_CHILD_CLEARTID) {
+      VG_(monitor_clear_child_tid)(ctid, (Addr)child_tidptr);
+   }
+#endif
    res = VG_(mk_SysRes_x86_linux)( eax );
 
    VG_(sigprocmask)(VKI_SIG_SETMASK, &savedmask, NULL);
@@ -687,6 +698,9 @@ static SysRes sys_set_thread_area ( ThreadId tid, vki_modify_ldt_t* info )
              "set_thread_area(info->entry)",
              (Addr) & info->entry_number, sizeof(unsigned int) );
    info->entry_number = idx;
+#ifdef RECORD_REPLAY
+   VG_(RR_Syscall_Mem)(1, &info->entry_number, sizeof(unsigned int));
+#endif
    VG_TRACK( post_mem_write, Vg_CoreSysCall, tid,
              (Addr) & info->entry_number, sizeof(unsigned int) );
 
@@ -963,6 +977,15 @@ PRE(sys_clone)
    }
 
    if (SUCCESS) {
+#ifdef RECORD_REPLAY
+      VG_(RR_Syscall_Ret)(&status->sres.res);
+      if (ARG1 & VKI_CLONE_PARENT_SETTID){
+         VG_(RR_Syscall_Mem)(1, ARG3, sizeof(Int));
+      }
+      if (ARG1 & (VKI_CLONE_CHILD_SETTID | VKI_CLONE_CHILD_CLEARTID)){
+         VG_(RR_Syscall_Mem)(1, ARG5, sizeof(Int));
+      }
+#endif
       if (ARG1 & VKI_CLONE_PARENT_SETTID)
          POST_MEM_WRITE(ARG3, sizeof(Int));
       if (ARG1 & (VKI_CLONE_CHILD_SETTID | VKI_CLONE_CHILD_CLEARTID))
@@ -1400,8 +1423,16 @@ POST(sys_syscall223)
    ------------------------------------------------------------------ */
 
 /* Add an x86-linux specific wrapper to a syscall table. */
+#define PLAX__(sysno, name)    WRAPPER_ENTRY_X__(x86_linux, sysno, name)
+#define PLAXR_(sysno, name)    WRAPPER_ENTRY_XR_(x86_linux, sysno, name)
+#define PLAXRY(sysno, name)    WRAPPER_ENTRY_XRY(x86_linux, sysno, name)
+#define PLAX_(sysno, name)    WRAPPER_ENTRY_X__(x86_linux, sysno, name)
+#define PLAXY(sysno, name)    WRAPPER_ENTRY_X_Y(x86_linux, sysno, name)
+#else
+/* Add an x86-linux specific wrapper to a syscall table. */
 #define PLAX_(sysno, name)    WRAPPER_ENTRY_X_(x86_linux, sysno, name) 
 #define PLAXY(sysno, name)    WRAPPER_ENTRY_XY(x86_linux, sysno, name)
+#endif
 
 
 // This table maps from __NR_xxx syscall numbers (from
@@ -1416,8 +1447,13 @@ static SyscallTableEntry syscall_table[] = {
 //zz    //   (restart_syscall)                             // 0
    GENX_(__NR_exit,              sys_exit),           // 1
    GENX_(__NR_fork,              sys_fork),           // 2
+#ifdef RECORD_REPLAY
+   GENXRY(__NR_read,              sys_read),           // 3
+   GENXR_(__NR_write,             sys_write),          // 4
+#else
    GENXY(__NR_read,              sys_read),           // 3
    GENX_(__NR_write,             sys_write),          // 4
+#endif
 
    GENXY(__NR_open,              sys_open),           // 5
    GENXY(__NR_close,             sys_close),          // 6
@@ -1428,7 +1464,11 @@ static SyscallTableEntry syscall_table[] = {
    GENX_(__NR_unlink,            sys_unlink),         // 10
    GENX_(__NR_execve,            sys_execve),         // 11
    GENX_(__NR_chdir,             sys_chdir),          // 12
+#ifdef RECORD_REPLAY
+   GENXRY(__NR_time,              sys_time),           // 13
+#else
    GENXY(__NR_time,              sys_time),           // 13
+#endif
    GENX_(__NR_mknod,             sys_mknod),          // 14
 
    GENX_(__NR_chmod,             sys_chmod),          // 15
@@ -1452,7 +1492,11 @@ static SyscallTableEntry syscall_table[] = {
    LINX_(__NR_utime,             sys_utime),          // 30
    GENX_(__NR_stty,              sys_ni_syscall),     // 31
    GENX_(__NR_gtty,              sys_ni_syscall),     // 32
+#ifdef RECORD_REPLAY
+   GENXR_(__NR_access,            sys_access),         // 33
+#else
    GENX_(__NR_access,            sys_access),         // 33
+#endif
    GENX_(__NR_nice,              sys_nice),           // 34
 
    GENX_(__NR_ftime,             sys_ni_syscall),     // 35
@@ -1464,7 +1508,11 @@ static SyscallTableEntry syscall_table[] = {
    GENX_(__NR_rmdir,             sys_rmdir),          // 40
    GENXY(__NR_dup,               sys_dup),            // 41
    LINXY(__NR_pipe,              sys_pipe),           // 42
+#ifdef RECORD_REPLAY
+   GENXRY(__NR_times,             sys_times),          // 43
+#else
    GENXY(__NR_times,             sys_times),          // 43
+#endif
    GENX_(__NR_prof,              sys_ni_syscall),     // 44
 //zz 
    GENX_(__NR_brk,               sys_brk),            // 45
@@ -1506,8 +1554,13 @@ static SyscallTableEntry syscall_table[] = {
    GENX_(__NR_setrlimit,         sys_setrlimit),      // 75
    GENXY(__NR_getrlimit,         sys_old_getrlimit),  // 76
    GENXY(__NR_getrusage,         sys_getrusage),      // 77
+#ifdef RECORD_REPLAY
+   GENXRY(__NR_gettimeofday,      sys_gettimeofday),   // 78
+   GENXR_(__NR_settimeofday,      sys_settimeofday),   // 79
+#else
    GENXY(__NR_gettimeofday,      sys_gettimeofday),   // 78
    GENX_(__NR_settimeofday,      sys_settimeofday),   // 79
+#endif
 
    LINXY(__NR_getgroups,         sys_getgroups16),    // 80
    LINX_(__NR_setgroups,         sys_setgroups16),    // 81
@@ -1559,7 +1612,11 @@ static SyscallTableEntry syscall_table[] = {
 
    PLAX_(__NR_clone,             sys_clone),          // 120
 //zz    //   (__NR_setdomainname,     sys_setdomainname),  // 121 */*(?)
+#ifdef RECORD_REPLAY
+   GENXRY(__NR_uname,             sys_newuname),       // 122
+#else
    GENXY(__NR_uname,             sys_newuname),       // 122
+#endif
    PLAX_(__NR_modify_ldt,        sys_modify_ldt),     // 123
    LINXY(__NR_adjtimex,          sys_adjtimex),       // 124
 
@@ -1650,9 +1707,15 @@ static SyscallTableEntry syscall_table[] = {
    GENX_(__NR_truncate64,        sys_truncate64),     // 193
    GENX_(__NR_ftruncate64,       sys_ftruncate64),    // 194
    
+#ifdef RECORD_REPLAY
+   PLAXRY(__NR_stat64,            sys_stat64),         // 195
+   PLAXRY(__NR_lstat64,           sys_lstat64),        // 196
+   PLAXRY(__NR_fstat64,           sys_fstat64),        // 197
+#else
    PLAXY(__NR_stat64,            sys_stat64),         // 195
    PLAXY(__NR_lstat64,           sys_lstat64),        // 196
    PLAXY(__NR_fstat64,           sys_fstat64),        // 197
+#endif
    GENX_(__NR_lchown32,          sys_lchown),         // 198
    GENX_(__NR_getuid32,          sys_getuid),         // 199
 
@@ -1684,7 +1747,11 @@ static SyscallTableEntry syscall_table[] = {
    LINXY(__NR_fcntl64,           sys_fcntl64),        // 221
    GENX_(222,                    sys_ni_syscall),     // 222
    PLAXY(223,                    sys_syscall223),     // 223 // sys_bproc?
+#ifdef RECORD_REPLAY
+   LINXR_(__NR_gettid,            sys_gettid),         // 224
+#else
    LINX_(__NR_gettid,            sys_gettid),         // 224
+#endif
 
    LINX_(__NR_readahead,         sys_readahead),      // 225 */Linux
    LINX_(__NR_setxattr,          sys_setxattr),       // 226
@@ -1704,7 +1771,11 @@ static SyscallTableEntry syscall_table[] = {
    LINXY(__NR_tkill,             sys_tkill),          // 238 */Linux
    LINXY(__NR_sendfile64,        sys_sendfile64),     // 239
 
+#ifdef RECORD_REPLAY
+   LINXRY(__NR_futex,             sys_futex),             // 240
+#else
    LINXY(__NR_futex,             sys_futex),             // 240
+#endif
    LINX_(__NR_sched_setaffinity, sys_sched_setaffinity), // 241
    LINXY(__NR_sched_getaffinity, sys_sched_getaffinity), // 242
    PLAX_(__NR_set_thread_area,   sys_set_thread_area),   // 243
@@ -1725,16 +1796,26 @@ static SyscallTableEntry syscall_table[] = {
    LINX_(__NR_epoll_ctl,         sys_epoll_ctl),         // 255
    LINXY(__NR_epoll_wait,        sys_epoll_wait),        // 256
 //zz    //   (__NR_remap_file_pages,  sys_remap_file_pages),  // 257 */Linux
+#ifdef RECORD_REPLAY
+   LINXR_(__NR_set_tid_address,   sys_set_tid_address),   // 258
+#else
    LINX_(__NR_set_tid_address,   sys_set_tid_address),   // 258
+#endif
    LINXY(__NR_timer_create,      sys_timer_create),      // 259
 
    LINXY(__NR_timer_settime,     sys_timer_settime),  // (timer_create+1)
    LINXY(__NR_timer_gettime,     sys_timer_gettime),  // (timer_create+2)
    LINX_(__NR_timer_getoverrun,  sys_timer_getoverrun),//(timer_create+3)
    LINX_(__NR_timer_delete,      sys_timer_delete),   // (timer_create+4)
+#ifdef RECORD_REPLAY
+   LINXR_(__NR_clock_settime,     sys_clock_settime),  // (timer_create+5)
+
+   LINXRY(__NR_clock_gettime,     sys_clock_gettime),  // (timer_create+6)
+#else
    LINX_(__NR_clock_settime,     sys_clock_settime),  // (timer_create+5)
 
    LINXY(__NR_clock_gettime,     sys_clock_gettime),  // (timer_create+6)
+#endif
    LINXY(__NR_clock_getres,      sys_clock_getres),   // (timer_create+7)
    LINXY(__NR_clock_nanosleep,   sys_clock_nanosleep),// (timer_create+8) */*
    GENXY(__NR_statfs64,          sys_statfs64),       // 268
@@ -1789,8 +1870,13 @@ static SyscallTableEntry syscall_table[] = {
    LINXY(__NR_ppoll,		 sys_ppoll),            // 309
 
 //   LINX_(__NR_unshare,		 sys_unshare),          // 310
+#ifdef RECORD_REPLAY
+   LINXR_(__NR_set_robust_list,  sys_set_robust_list),  // 311
+   LINXRY(__NR_get_robust_list,  sys_get_robust_list),  // 312
+#else
    LINX_(__NR_set_robust_list,	 sys_set_robust_list),  // 311
    LINXY(__NR_get_robust_list,	 sys_get_robust_list),  // 312
+#endif
    LINX_(__NR_splice,            sys_splice),           // 313
    LINX_(__NR_sync_file_range,   sys_sync_file_range),  // 314
 

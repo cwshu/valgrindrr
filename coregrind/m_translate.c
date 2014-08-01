@@ -57,6 +57,10 @@
 #include "pub_core_threadstate.h"  // VexGuestArchState
 #include "pub_core_trampoline.h"   // VG_(ppctoc_magic_redirect_return_stub)
 
+#ifdef RECORD_REPLAY
+#include "pub_core_recordreplay.h"
+#endif
+
 #include "pub_core_execontext.h"  // VG_(make_depth_1_ExeContext_from_Addr)
 
 #include "pub_core_gdbserver.h"   // VG_(tool_instrument_then_gdbserver_if_needed)
@@ -1538,6 +1542,15 @@ Bool VG_(translate) ( ThreadId tid,
    vta.host_bytes       = tmpbuf;
    vta.host_bytes_size  = N_TMPBUF;
    vta.host_bytes_used  = &tmpbuf_used;
+#ifdef RECORD_REPLAY
+   if(VG_(clo_record_replay) == RECORDONLY || VG_(clo_record_replay) == REPLAYONLY) {
+      /*
+       * Insert an extra instrumentation pass to handle non-deterministic 
+       * priviledged instructions.
+       */
+      vta.instrument0 = VG_(instrumentRecordReplay);
+   }
+#endif
    { /* At this point we have to reconcile Vex's view of the
         instrumentation callback - which takes a void* first argument
         - with Valgrind's view, in which the first arg is a

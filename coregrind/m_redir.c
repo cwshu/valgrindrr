@@ -118,7 +118,7 @@
    from reading symbol tables of the currently loaded objects.
 
    Active is a pure function of Specs and the current symbol table
-   state (maintained by m_debuginfo).  Call the latter SyminfoState.
+   state (maintained by m_debuginfo).  Call the latter SymInfoState.
 
    Therefore whenever either Specs or SyminfoState changes, Active
    must be recomputed.  [Inefficient if done naively, but this is a

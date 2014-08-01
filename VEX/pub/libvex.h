@@ -668,6 +668,16 @@ typedef
 
       /* IN: optionally, two instrumentation functions.  May be
 	 NULL. */
+#ifdef RECORD_REPLAY
+      /* only for record/replay instrumentation, which deals with
+         non-deterministic priviledge instructions, like rdtsc.
+         instrument0 must happen before instrument1 and instrument2. */
+      IRSB*   (*instrument0) ( /*callback_opaque*/void*, 
+                               IRSB*, 
+                               VexGuestLayout*, 
+                               VexGuestExtents*,
+                               IRType gWordTy, IRType hWordTy );
+#endif
       IRSB*   (*instrument1) ( /*callback_opaque*/void*, 
                                IRSB*, 
                                VexGuestLayout*, 

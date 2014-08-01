@@ -155,6 +155,14 @@ typedef
                        /*OUT*/UWord*
                      );
 
+#ifdef RECORD_REPLAY
+      /* only HandToKernel syscalls are replayed */
+      void (*record_replay) ( ThreadId,
+                              ULong*,
+                              /*MOD*/SyscallArgs*
+                            ); 
+#endif
+
       void (*after)  ( ThreadId, 
                        SyscallArgs*,
                        SyscallStatus*
@@ -233,6 +241,15 @@ extern const UInt ML_(syscall_table_size);
                                    /*OUT*/SyscallStatus* status, \
                                    /*OUT*/UWord* flags           \
                                  )
+
+#ifdef RECORD_REPLAY
+#define DEFN_RECORDREPLAY_TEMPLATE(auxstr, name)                       \
+   void vgSysWrap_##auxstr##_##name##_record_replay              \
+                                 ( ThreadId tid,                 \
+                                   ULong* sys_ret,               \
+                                   /*MOD*/SyscallArgs* arrghs    \
+                                 )
+#endif
 
 #define DEFN_POST_TEMPLATE(auxstr, name)                         \
    void vgSysWrap_##auxstr##_##name##_after                      \
@@ -322,6 +339,44 @@ extern const UInt ML_(syscall_table_size);
 #define RES           (getRES(status))
 #define RESHI         (getRESHI(status))
 #define ERR           (getERR(status))
+
+#ifdef RECORD_REPLAY
+/* Make a SysRes value from an syscall return value.  This is
+      Linux-specific.
+ 
+   From:
+   http://sources.redhat.com/cgi-bin/cvsweb.cgi/libc/sysdeps/unix/sysv/
+   linux/i386/sysdep.h?
+   rev=1.28&content-type=text/x-cvsweb-markup&cvsroot=glibc
+
+   Linux uses a negative return value to indicate syscall errors,
+   unlike most Unices, which use the condition codes' carry flag.
+
+   Since version 2.1 the return value of a system call might be
+   negative even if the call succeeded.  E.g., the 'lseek' system call
+   might return a large offset.  Therefore we must not anymore test
+   for < 0, but test for a real error by making sure the value in %eax
+   is a real error number.  Linus said he will make sure the no
+   syscall returns a value in -1 .. -4095 as a valid result so we can
+   safely test with -4095. 
+*/
+/* sys_ret must be ULong type */
+#if defined(VGP_x86_linux)
+#define SYSRET_SUCCESS(sys_ret) ((UInt)sys_ret < -4095 || (UInt)sys_ret > -1)
+#elif defined(VGP_amd64_linux)
+#define SYSRET_SUCCESS(sys_ret) ((ULong)sys_ret < -4095 || (ULong)sys_ret > -1)
+#else
+#error "unsupported arch"
+#endif
+#define SHARED_RECORDREPLAY_HEADER                                \
+   do { if(VG_(clo_record_replay) != RECORDONLY && VG_(clo_record_replay) != REPLAYONLY) \
+           return;                                                     \
+        VG_(RR_Syscall_Ret)(sys_ret);                                  \
+        if(!SYSRET_SUCCESS(*sys_ret))                                  \
+           return;                                                     \
+   } while (0)
+
+#endif
 
 static inline UWord getRES ( SyscallStatus* st ) {
    vg_assert(st->what == SsComplete);

@@ -31,6 +31,8 @@
 #ifndef __PUB_CORE_BASICS_H
 #define __PUB_CORE_BASICS_H
 
+#define RECORD_REPLAY
+
 //--------------------------------------------------------------------
 // PURPOSE: This header should be imported by every single C file
 // in the core.  It contains the basic types and other things needed

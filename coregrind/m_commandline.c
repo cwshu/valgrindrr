@@ -40,6 +40,9 @@
 #include "pub_core_clientstate.h"
 #include "pub_core_commandline.h" /* self */
 
+#ifdef RECORD_REPLAY
+#include "pub_core_recordreplay.h"
+#endif
 
 /* Add a string to an expandable array of strings. */
 
@@ -194,6 +197,10 @@ void VG_(split_up_argv)( Int argc, HChar** argv )
       add_string( tmp_xarray, argv[i] );
    }
 
+#ifdef RECORD_REPLAY
+   /* VG_(clo_record_replay) and VG_(clo_log_fd_rr) are ready now */
+   if(VG_(clo_record_replay) != REPLAYONLY){ /* not replaying */
+#endif
    /* Should now be looking at the exe name. */
    if (i < argc) {
       vg_assert(argv[i]);
@@ -206,6 +213,9 @@ void VG_(split_up_argv)( Int argc, HChar** argv )
       vg_assert(argv[i]);
       add_string( VG_(args_for_client), argv[i] );
    }
+#ifdef RECORD_REPLAY
+   }
+#endif
 
    /* Get extra args from ~/.valgrindrc, $VALGRIND_OPTS and
       ./.valgrindrc into VG_(args_for_valgrind). */
@@ -243,6 +253,11 @@ void VG_(split_up_argv)( Int argc, HChar** argv )
                   * (HChar**)VG_(indexXA)( tmp_xarray, i ) );
 
    VG_(deleteXA)( tmp_xarray );
+
+#ifdef RECORD_REPLAY
+   VG_(RR_ClientCmdLine)();
+#endif
+
 }
 
 /*--------------------------------------------------------------------*/

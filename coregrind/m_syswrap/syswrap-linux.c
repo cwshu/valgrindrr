@@ -64,6 +64,12 @@
 #include "priv_syswrap-generic.h"
 #include "priv_syswrap-linux.h"
 #include "priv_syswrap-xen.h"
+#ifdef RECORD_REPLAY
+#include "pub_core_options.h"
+#include "pub_core_vkiscnums.h"
+#include "pub_core_recordreplay.h"
+#include "syswrapRR-linux.c"
+#endif
 
 // Run a thread from beginning to end and return the thread's
 // scheduler-return-code.
@@ -392,6 +398,18 @@ void VG_(main_thread_wrapper_NORETURN)(ThreadId tid)
    /* shouldn't be any other threads around yet */
    vg_assert( VG_(count_living_threads)() == 1 );
 
+#ifdef RECORD_REPLAY
+   /* For main thread */
+   {
+      unsigned long lwpid_main = VG_(gettid)();
+      vg_assert(tid == 1);
+      /*
+       * RR_Thread_Create will feeds recorded value back into lwpid_main,
+       * but it is meaningless here
+       */
+      VG_(RR_Thread_Create)(VG_(running_tid), 1, &lwpid_main);
+   }
+#endif
    ML_(call_on_new_stack_0_1)( 
       (Addr)sp,               /* stack */
       0,                      /* bogus return address */

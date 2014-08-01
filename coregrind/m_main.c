@@ -71,6 +71,9 @@
 #include "pub_core_clreq.h"
 #endif 
 
+#ifdef RECORD_REPLAY
+#include "pub_core_recordreplay.h"
+#endif
 
 /*====================================================================*/
 /*=== Counters, for profiling purposes only                        ===*/
@@ -113,6 +116,11 @@ static void usage_NORETURN ( Bool debug_help )
 "usage: valgrind [options] prog-and-args\n"
 "\n"
 "  tool-selection option, with default in [ ]:\n"
+#ifdef RECORD_REPLAY
+"    --record-replay=0|1|2     record or replay a specified client program. Default tool is none [0]\n"
+"                               0 stands for no record or replay; 1, record; 2, replay\n"
+"    --log-file-rr=<file>      only for record&replay. the name of replay log <file> [./_temp_rr_.log]\n"
+#endif
 "    --tool=<name>             use the Valgrind tool named <name> [memcheck]\n"
 "\n"
 "  basic user options for all Valgrind tools, with defaults in [ ]:\n"
@@ -514,6 +522,11 @@ void main_process_cmd_line_options ( /*OUT*/Bool* logging_to_fd,
       else if VG_STREQN(20, arg, "--command-line-only=") {}
       else if VG_STREQ(     arg, "--")                   {}
       else if VG_STREQ(     arg, "-d")                   {}
+#ifdef RECORD_REPLAY
+/* Ignore these options - already been handled in m_recordreplay/recordreplay.c */
+      else if (VG_CLO_STREQN(16, arg, "--record-replay="))     { }
+      else if (VG_CLO_STREQN(13, arg, "--log-file-rr="))        { }
+#endif
       else if VG_STREQN(17, arg, "--max-stackframe=")    {}
       else if VG_STREQN(17, arg, "--main-stacksize=")    {}
       else if VG_STREQN(12, arg,  "--sim-hints=")        {}
@@ -1578,6 +1591,64 @@ Int valgrind_main ( Int argc, HChar **argv, HChar **envp )
    VG_(debugLog)(1, "main", "Welcome to Valgrind version " 
                             VERSION " debug logging\n");
 
+#ifdef RECORD_REPLAY
+   VG_(debugLog)(1, "main", "Initializing record/replay ..\n");
+   VG_(RR_Init)(argc, argv, &toolname);
+#endif
+
+   //--------------------------------------------------------------
+   // AIX5 only: register the system call numbers
+   //   p: logging
+   //   p: that the initial few syscall numbers stated in the
+   //      bootblock have been installed (else we can't 
+   //      open/read/close).
+   //--------------------------------------------------------------
+#  if defined(VGO_aix5)
+   VG_(debugLog)(1, "main", "aix5: registering syscalls ..\n");
+   { UChar  sysent_name[50];
+     SysRes fd;
+     Bool   ok;
+     Int    n_unregd, sysent_used = 0;
+     prsysent_t* sysent_hdr;
+
+     VG_(sprintf)(sysent_name, "/proc/%d/sysent", VG_(getpid)());
+     fd = VG_(open)(sysent_name, VKI_O_RDONLY, 0);
+     if (fd.isError)
+        VG_(err_config_error)("aix5: can't open /proc/<pid>/sysent");
+
+     sysent_used = VG_(read)(fd.res, aix5_sysent_buf, VG_AIX5_SYSENT_SIZE);
+     if (sysent_used < 0)
+        VG_(err_config_error)("aix5: error reading /proc/<pid>/sysent");
+     if (sysent_used >= VG_AIX5_SYSENT_SIZE)
+        VG_(err_config_error)("aix5: VG_AIX5_SYSENT_SIZE is too low; "
+                              "increase and recompile");
+     VG_(close)(fd.res);
+
+     vg_assert(sysent_used > 0 && sysent_used < VG_AIX5_SYSENT_SIZE);
+
+     sysent_hdr = (prsysent_t*)&aix5_sysent_buf[0];
+
+     n_unregd = 0;
+     for (i = 0; i < sysent_hdr->pr_nsyscalls; i++) {
+        UChar* name = &aix5_sysent_buf[ sysent_hdr
+                                        ->pr_syscall[i].pr_nameoff ];
+        UInt   nmbr = sysent_hdr->pr_syscall[i].pr_number;
+        VG_(debugLog)(3, "main", "aix5: bind syscall %d to \"%s\"\n", 
+                                 nmbr, name);
+        ok = VG_(aix5_register_syscall)(nmbr, name);
+        if (!ok)
+           n_unregd++;
+	if (!ok)
+           VG_(debugLog)(3, "main", 
+                            "aix5: bind FAILED: %d to \"%s\"\n", 
+                            nmbr, name);
+     }
+     VG_(debugLog)(1, "main", "aix5: .. %d syscalls known, %d unknown\n",
+                      sysent_hdr->pr_nsyscalls - n_unregd, n_unregd );
+     VG_(debugLog)(1, "main", "aix5: __NR_AIX5_FAKE_SIGRETURN = %d\n",
+                      __NR_AIX5_FAKE_SIGRETURN );
+   }
+#  endif
    //--------------------------------------------------------------
    // Ensure we're on a plausible stack.
    //   p: logging
@@ -2475,6 +2546,11 @@ void shutdown_actions_NORETURN( ThreadId tid,
    /* In XML mode, this merely prints the used suppressions. */
    if (VG_(needs).core_errors || VG_(needs).tool_errors)
       VG_(show_all_errors)(VG_(clo_verbosity), VG_(clo_xml));
+
+
+#ifdef RECORD_REPLAY
+   VG_(RR_Exit)();
+#endif
 
    if (VG_(clo_xml)) {
       VG_(printf_xml)("\n");

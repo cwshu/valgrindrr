@@ -281,6 +281,12 @@ int main(int argc, char** argv, char** envp)
       }
       if (0 == strcmp(argv[i], "-d")) 
          loglevel++;
+#define RECORD_REPLAY
+#ifdef RECORD_REPLAY
+      if (0 == strncmp(argv[i], "--record-replay=", 16)) {
+         toolname = "none";
+      }
+#endif
       if (0 == strncmp(argv[i], "--tool=", 7)) 
          toolname = argv[i] + 7;
    }

@@ -53,6 +53,10 @@
 #include "priv_initimg_pathscan.h"
 #include "pub_core_initimg.h"         /* self */
 
+#ifdef RECORD_REPLAY
+#include "pub_core_recordreplay.h"
+#endif
+
 /* --- !!! --- EXTERNAL HEADERS start --- !!! --- */
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64

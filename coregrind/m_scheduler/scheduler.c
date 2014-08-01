@@ -95,6 +95,10 @@
 #include "pub_core_scheduler.h"     // self
 #include "pub_core_redir.h"
 #include "libvex_emnote.h"          // VexEmNote
+#ifdef RECORD_REPLAY
+#include "pub_core_recordreplay.h"
+#endif
+/* #include "pub_core_debuginfo.h" */   // DEBUGGING HACK ONLY
 
 
 /* ---------------------------------------------------------------------
@@ -110,6 +114,9 @@
 
 /* If False, a fault is Valgrind-internal (ie, a bug) */
 Bool VG_(in_generated_code) = False;
+
+/* Counts downwards in VG_(run_innerloop). */
+UInt VG_(dispatch_ctr);     
 
 /* 64-bit counter for the number of basic blocks done. */
 static ULong bbs_done = 0;
@@ -276,6 +283,11 @@ void VG_(acquire_BigLock)(ThreadId tid, const HChar* who)
       point is, technically, wrong. */
    VG_(acquire_BigLock_LL)(NULL);
 
+
+#ifdef RECORD_REPLAY
+   VG_(RR_Thread_Acquire)(tid, who);
+#endif
+
    tst = VG_(get_ThreadState)(tid);
 
    vg_assert(tst->status != VgTs_Runnable);
@@ -332,6 +344,10 @@ void VG_(release_BigLock)(ThreadId tid, ThreadStatus sleepstate,
       print_sched_event(tid, buf);
    }
 
+#ifdef RECORD_REPLAY
+   VG_(RR_Thread_Release) (tid, who);
+#endif
+
    /* Release the_BigLock; this will reschedule any runnable
       thread. */
    VG_(release_BigLock_LL)(NULL);
@@ -387,6 +403,10 @@ void VG_(exit_thread)(ThreadId tid)
       print_sched_event(tid, "release lock in VG_(exit_thread)");
 
    VG_(release_BigLock_LL)(NULL);
+
+#ifdef RECORD_REPLAY
+   VG_(RR_Thread_Exit)(tid);
+#endif
 }
 
 /* If 'tid' is blocked in a syscall, send it SIGVGKILL so as to get it
@@ -454,6 +474,35 @@ void VG_(vg_yield)(void)
    VG_(acquire_BigLock)(tid, "VG_(vg_yield)");
 }
 
+#ifdef RECORD_REPLAY
+/*
+ * Only used by RR_acquire_BigLock. If a wrong thread gets chance to run,
+ * it yields by calling this function 
+ */
+void VG_(replay_yield)(ThreadId tid)
+{
+
+/*
+   if (VG_(clo_trace_sched)) {
+      print_sched_event(tid, "not expected to run now, yielding...");
+   }
+*/
+
+   ML_(sema_up)(&the_BigLock);
+   /* 
+      Tell the kernel we're yielding.
+    */
+   VG_(do_syscall0)(__NR_sched_yield);
+
+   ML_(sema_down)(&the_BigLock);
+
+/*
+   if (VG_(clo_trace_sched)) {
+      print_sched_event(tid, "acquired the BigLock again...");
+   }
+*/
+}
+#endif
 
 /* Set the standard set of blocked signals, used whenever we're not
    running a client syscall. */
@@ -1067,8 +1116,19 @@ static void handle_syscall(ThreadId tid, UInt trc)
    if (VG_(clo_sanity_level >= 3))
       VG_(am_do_sync_check)("(BEFORE SYSCALL)",__FILE__,__LINE__);
 
+#ifdef RECORD_REPLAY
+   VG_(RR_Syscall_DispatchCtr)(VG_(dispatch_ctr), 1);
+   tst->dispatch_ctr = VG_(dispatch_ctr);
+#endif
    SCHEDSETJMP(tid, jumped, VG_(client_syscall)(tid, trc));
 
+#ifdef RECORD_REPLAY
+   VG_(dispatch_ctr) = tst->dispatch_ctr;
+   /* Attention: the thread after SCHEDSETJMP may be different from the thread 
+        before SCHEDSETJMP. But they use the same dispatch_ctr...
+    */
+   VG_(RR_Syscall_DispatchCtr)(VG_(dispatch_ctr), 0);
+#endif
    if (VG_(clo_sanity_level >= 3))
       VG_(am_do_sync_check)("(AFTER SYSCALL)",__FILE__,__LINE__);
 
