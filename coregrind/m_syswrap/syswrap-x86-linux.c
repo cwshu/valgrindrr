@@ -1422,6 +1422,7 @@ POST(sys_syscall223)
    The x86/Linux syscall table
    ------------------------------------------------------------------ */
 
+#ifdef RECORD_REPLAY
 /* Add an x86-linux specific wrapper to a syscall table. */
 #define PLAX__(sysno, name)    WRAPPER_ENTRY_X__(x86_linux, sysno, name)
 #define PLAXR_(sysno, name)    WRAPPER_ENTRY_XR_(x86_linux, sysno, name)
