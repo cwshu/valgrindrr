@@ -198,6 +198,9 @@ static inline Bool sr_isError ( SysRes sr ) {
 static inline UWord sr_Res ( SysRes sr ) {
    return sr._isError ? 0 : sr._val;
 }
+static inline UWord* sr_pRes ( SysRes sr ) {
+   return sr._isError ? 0 : &sr._val;
+}
 static inline UWord sr_ResEx ( SysRes sr ) {
    return sr._isError ? 0 : sr._valEx;
 }
@@ -228,6 +231,15 @@ static inline UWord sr_Res ( SysRes sr ) {
       case SysRes_MACH:
       case SysRes_MDEP:
       case SysRes_UNIX_OK: return sr._wLO;
+      default: return 0; /* should assert, but we can't here */
+   }
+}
+
+static inline UWord* sr_pRes ( SysRes sr ) {
+   switch (sr._mode) {
+      case SysRes_MACH:
+      case SysRes_MDEP:
+      case SysRes_UNIX_OK: return &sr._wLO;
       default: return 0; /* should assert, but we can't here */
    }
 }

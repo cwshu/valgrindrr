@@ -258,7 +258,7 @@ extern const UInt ML_(syscall_table_size);
                                    SyscallStatus* status         \
                                  )
 
-
+#ifndef RECORD_REPLAY
 /* This macro generates declarations (prototypes) for wrappers.  It
    declares both the pre-wrapper and the post-wrapper, even though the
    post-wrapper may not actually exist.
@@ -310,6 +310,90 @@ extern const UInt ML_(syscall_table_size);
    table. */
 #define LINX_(sysno, name)    WRAPPER_ENTRY_X_(linux, sysno, name) 
 #define LINXY(sysno, name)    WRAPPER_ENTRY_XY(linux, sysno, name)
+
+#else
+/* This macro generates declarations (prototypes) for wrappers.  It
+   declares both the pre-wrapper replay-wrapper, and the post-wrapper,
+   even though the post-wrapper may not actually exist.
+*/
+#define DECL_TEMPLATE(auxstr, name)                              \
+   extern                                                        \
+   void vgSysWrap_##auxstr##_##name##_before                     \
+                                 ( ThreadId tid,                 \
+                                   SyscallArgLayout* layout,     \
+                                   /*MOD*/SyscallArgs* arrghs,   \
+                                   /*OUT*/SyscallStatus* status, \
+                                   /*OUT*/UWord* flags           \
+                                 );                              \
+   extern                                                        \
+   void vgSysWrap_##auxstr##_##name##_record_replay              \
+                                 ( ThreadId tid,                 \
+                                   ULong* sys_ret,               \
+                                   /*MOD*/SyscallArgs* arrghs    \
+                                 );                              \
+   extern                                                        \
+   void vgSysWrap_##auxstr##_##name##_after                      \
+                                 ( ThreadId tid,                 \
+                                   SyscallArgs* arrghs,          \
+                                   SyscallStatus* status         \
+                                 );
+
+/* Macros for conveniently generating entries in the syscall
+   tables.  This first pair are not used directly. */
+
+#define WRAPPER_ENTRY_X__(auxstr, sysno, name) \
+   [sysno] = { vgSysWrap_##auxstr##_##name##_before, NULL, NULL }
+#define WRAPPER_ENTRY_X_Y(auxstr, sysno, name) \
+   [sysno] = { vgSysWrap_##auxstr##_##name##_before, \
+               NULL, \
+               vgSysWrap_##auxstr##_##name##_after }
+#define WRAPPER_ENTRY_XR_(auxstr, sysno, name) \
+   [sysno] = { vgSysWrap_##auxstr##_##name##_before, \
+               vgSysWrap_##auxstr##_##name##_record_replay, \
+               NULL }
+#define WRAPPER_ENTRY_XRY(auxstr, sysno, name) \
+   [sysno] = { vgSysWrap_##auxstr##_##name##_before, \
+               vgSysWrap_##auxstr##_##name##_record_replay, \
+               vgSysWrap_##auxstr##_##name##_after }
+
+#define WRAPPER_PRE_NAME(auxstr, name) \
+    vgSysWrap_##auxstr##_##name##_before
+#define WRAPPER_POST_NAME(auxstr, name) \
+    vgSysWrap_##auxstr##_##name##_after
+#define WRAPPER_RECOR_DREPLAY_NAME(auxstr, name) \
+    vgSysWrap_##auxstr##_##name##_record_replay
+
+/* Add a generic wrapper to a syscall table. */
+#define GENX_(sysno, name)     WRAPPER_ENTRY_X__(generic, sysno, name)
+#define GENXY(sysno, name)     WRAPPER_ENTRY_X_Y(generic, sysno, name)
+#define GENX__(sysno, name)    WRAPPER_ENTRY_X__(generic, sysno, name)
+#define GENXR_(sysno, name)    WRAPPER_ENTRY_XR_(generic, sysno, name)
+#define GENX_Y(sysno, name)    WRAPPER_ENTRY_X_Y(generic, sysno, name)
+#define GENXRY(sysno, name)    WRAPPER_ENTRY_XRY(generic, sysno, name)
+
+/* Add a Linux-specific, arch-independent wrapper to a syscall
+   table. */
+#define LINX_(sysno, name)     WRAPPER_ENTRY_X__(linux, sysno, name) 
+#define LINXY(sysno, name)     WRAPPER_ENTRY_X_Y(linux, sysno, name)
+#define LINX__(sysno, name)    WRAPPER_ENTRY_X__(linux, sysno, name) 
+#define LINXR_(sysno, name)    WRAPPER_ENTRY_XR_(linux, sysno, name) 
+#define LINX_Y(sysno, name)    WRAPPER_ENTRY_X_Y(linux, sysno, name)
+#define LINXRY(sysno, name)    WRAPPER_ENTRY_XRY(linux, sysno, name)
+/* the above WRAPPER MACROs are only used in the bottom lines of syswrap-x86-linux.c */
+
+#endif /* #ifndef RECORD_REPLAY */
+
+/* Add an AIX5-specific, arch-independent wrapper to a syscall
+   table. */
+#define AIXXY(sysno, name)                     \
+   { & sysno,                                  \
+     { & WRAPPER_PRE_NAME(aix5, name),         \
+       & WRAPPER_POST_NAME(aix5, name) }} 
+
+#define AIXX_(sysno, name)                     \
+   { & sysno,                                  \
+     { & WRAPPER_PRE_NAME(aix5, name),         \
+       NULL }} 
 
 
 /* ---------------------------------------------------------------------
