@@ -978,7 +978,7 @@ PRE(sys_clone)
 
    if (SUCCESS) {
 #ifdef RECORD_REPLAY
-      VG_(RR_Syscall_Ret)(&status->sres.res);
+      VG_(RR_Syscall_Ret)( sr_pRes(status->sres) );
       if (ARG1 & VKI_CLONE_PARENT_SETTID){
          VG_(RR_Syscall_Mem)(1, ARG3, sizeof(Int));
       }
