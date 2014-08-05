@@ -136,6 +136,7 @@ $(mach_hdrs): $(mach_defs) $(mach_user_srcs) $(abs_builddir)/m_mach
 #----------------------------------------------------------------------------
 
 noinst_HEADERS = \
+	pub_core_recordreplay.h	\
 	pub_core_aspacehl.h	\
 	pub_core_aspacemgr.h	\
 	pub_core_basics.h	\
@@ -384,6 +385,10 @@ COREGRIND_SOURCES_COMMON = \
 	m_syswrap/syswrap-x86-darwin.c \
 	m_syswrap/syswrap-amd64-darwin.c \
 	m_syswrap/syswrap-xen.c \
+	m_recordreplay/record.c \
+	m_recordreplay/replay.c \
+	m_recordreplay/recordreplay.c \
+	m_recordreplay/instrument.c \
 	m_ume/elf.c \
 	m_ume/macho.c \
 	m_ume/main.c \
