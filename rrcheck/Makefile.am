@@ -1,24 +1,6 @@
 include $(top_srcdir)/Makefile.tool.am
 
-noinst_PROGRAMS = 
-if VGP_X86_LINUX
-noinst_PROGRAMS += rrcheck-x86-linux
-endif
-if VGP_AMD64_LINUX
-noinst_PROGRAMS += rrcheck-amd64-linux
-endif
-if VGP_PPC32_LINUX
-noinst_PROGRAMS += rrcheck-ppc32-linux
-endif
-if VGP_PPC64_LINUX
-noinst_PROGRAMS += rrcheck-ppc64-linux
-endif
-if VGP_PPC32_AIX5
-noinst_PROGRAMS += rrcheck-ppc32-aix5
-endif
-if VGP_PPC64_AIX5
-noinst_PROGRAMS += rrcheck-ppc64-aix5
-endif
+noinst_PROGRAMS = rrcheck-@VGCONF_ARCH_PRI@-@VGCONF_OS@
 
 NONE_SOURCES_COMMON = rrcheck_main.c
 
