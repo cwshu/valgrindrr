@@ -524,8 +524,8 @@ void main_process_cmd_line_options ( /*OUT*/Bool* logging_to_fd,
       else if VG_STREQ(     arg, "-d")                   {}
 #ifdef RECORD_REPLAY
 /* Ignore these options - already been handled in m_recordreplay/recordreplay.c */
-      else if (VG_CLO_STREQN(16, arg, "--record-replay="))     { }
-      else if (VG_CLO_STREQN(13, arg, "--log-file-rr="))        { }
+      else if VG_STREQN(16, arg, "--record-replay=")     {}
+      else if VG_STREQN(13, arg, "--log-file-rr=")       {}
 #endif
       else if VG_STREQN(17, arg, "--max-stackframe=")    {}
       else if VG_STREQN(17, arg, "--main-stacksize=")    {}

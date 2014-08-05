@@ -28,7 +28,7 @@
  *
  *      Replay only code: reading entries from replay log.
  */
-
+#include <alloca.h>
 #include "pub_core_basics.h"
 #include "pub_core_options.h"
 #include "pub_core_xarray.h"
@@ -161,7 +161,7 @@ void ML_(readFromLog)(LogEntry* rt_ent)
    }
    else if(rt_ent->type == CLIENT_CMDLINE){
       UInt len = rt_ent->u.client_cmdline.len;
-      rt_ent->u.client_cmdline.addr = (Char*)VG_(malloc)(len+1);
+      rt_ent->u.client_cmdline.addr = (Char*)VG_(malloc)(NULL, len+1);
       ret = VG_(read)(ML_(log_fd_rr), rt_ent->u.client_cmdline.addr, len);
       vg_assert2(ret == len, "Error in reading replay log\n"); 
       rt_ent->u.client_cmdline.addr[len] = '\0';

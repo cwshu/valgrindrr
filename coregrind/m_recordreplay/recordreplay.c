@@ -404,8 +404,8 @@ VG_(RR_Thread_Acquire) (ThreadId tid, Char* who)
       le->type = ACQUIRE_BIGLOCK;
       le->tid = VG_(running_tid);
       le->u.acquire_biglock.tid = tid;
-#define VG_STREQN(nn,s1,s2) (0==VG_(strncmp_ws)((s1),(s2),(nn)))
-      if(VG_STREQN(17,"sigvgkill_handler", who)) {
+#define VG_RR_STREQN(nn,s1,s2) (0==VG_(strncmp_ws)((s1),(s2),(nn)))
+      if(VG_RR_STREQN(17,"sigvgkill_handler", who)) {
          le->u.acquire_biglock.type = CALLER_SIGVKILL;
       } else {
          le->u.acquire_biglock.type = CALLER_NORMAL;
@@ -420,8 +420,8 @@ VG_(RR_Thread_Acquire) (ThreadId tid, Char* who)
       ThreadState* tst;
 
       /* nextSchedule.tid and .type is are ready */
-      if(VG_STREQN(17,"sigvgkill_handler", who)) {
-#undef VG_STREQN
+      if(VG_RR_STREQN(17,"sigvgkill_handler", who)) {
+#undef VG_RR_STREQN
          vg_assert(nextSchedule.type == CALLER_SIGVKILL);
       } else {
          vg_assert(nextSchedule.type == CALLER_NORMAL);
@@ -895,8 +895,8 @@ setupRRArgs(Int argc, HChar** argv)
       if (argv[i][0] != '-')
          break;
 
-      VG_NUM_CLO(str, "--record-replay", VG_(clo_record_replay))
-      else VG_STR_CLO(str, "--log-file-rr", VG_(clo_log_name_rr))
+      if VG_INT_CLO(str, "--record-replay", VG_(clo_record_replay)) {}
+      else if VG_STR_CLO(str, "--log-file-rr", VG_(clo_log_name_rr)) {}
       else continue;
    }
 
@@ -907,8 +907,8 @@ setupRRArgs(Int argc, HChar** argv)
 
    /* sanity check */
    if(VG_(clo_record_replay) > REPLAYONLY || VG_(clo_record_replay) < RECORDONLY) {
-      VG_(message)(Vg_UserMsg, "--record-replay argument can only be 1|2.");
-      VG_(err_bad_option)("--record-replay=");
+      VG_(fmsg_bad_option)("--record-replay=", 
+         "--record-replay argument can only be 1|2.");
    }
 
    /* setup ML_(log_fd_rr) */
@@ -929,14 +929,12 @@ setupRRArgs(Int argc, HChar** argv)
                        VKI_S_IRUSR|VKI_S_IWUSR);
       }
 
-      if (!sres.isError) {
-         tmp_fd = sres.res;
+      if (!sr_isError(sres)) {
+         tmp_fd = sr_Res(sres);
       } else {
-         VG_(message)(Vg_UserMsg,
-                      "Can't open or create log file for record and replay '%s' (%s)",
-                      VG_(clo_log_name_rr), VG_(strerror)(sres.err));
-         VG_(err_bad_option)(
-            "--log-file-rr=<file> (didn't work out for some reason.)");
+          VG_(fmsg_bad_option)("--log-file-rr=<file> (didn't work out for some reason.)", 
+             "Can't open or create log file for record and replay '%s' (%s)",
+             VG_(clo_log_name_rr), VG_(strerror)(sr_Err(sres)));
          /*NOTREACHED*/
       }
       if (tmp_fd >= 0) {

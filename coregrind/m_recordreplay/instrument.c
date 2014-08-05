@@ -28,7 +28,7 @@
  *
  *      Instrumetation pass to deal with non-deterministic priviledged instructions.
  */
-
+#include <alloca.h>
 #include "pub_core_basics.h"
 #include "pub_core_libcbase.h"
 #include "pub_core_libcprint.h"

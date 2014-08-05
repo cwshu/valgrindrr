@@ -410,6 +410,28 @@ HChar* VG_(strrchr) ( const HChar* s, HChar c )
    return NULL;
 }
 
+/* add from valgrind 3.3, valgrindrr use this function */
+static Bool isterm ( Char c )
+{
+   return ( VG_(isspace)(c) || 0 == c );
+}
+
+Int VG_(strncmp_ws) ( const Char* s1, const Char* s2, SizeT nmax )
+{
+   Int n = 0;
+   while (True) {
+      if (n >= nmax) return 0;
+      if (isterm(*s1) && isterm(*s2)) return 0;
+      if (isterm(*s1)) return -1;
+      if (isterm(*s2)) return 1;
+
+      if (*(UChar*)s1 < *(UChar*)s2) return -1;
+      if (*(UChar*)s1 > *(UChar*)s2) return 1;
+
+      s1++; s2++; n++;
+   }
+}
+
 /* (code copied from glib then updated to valgrind types) */
 static HChar *olds;
 HChar *

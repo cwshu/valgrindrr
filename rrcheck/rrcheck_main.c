@@ -69,10 +69,10 @@ extern RRState VG_(clo_record_replay);  /* 1, record; 2, replay */
 
 static Bool rrcheck_process_cmd_line_option(Char* arg)
 {
-   VG_STR_CLO(arg, "--log-name", rrcheck_out_file)
-   else VG_BOOL_CLO(arg, "--trace-mem",         clo_trace_mem)
-   else VG_BOOL_CLO(arg, "--trace-reg",         clo_trace_reg)
-   else VG_BOOL_CLO(arg, "--trace-superblocks", clo_trace_sbs)
+   if VG_STR_CLO(arg, "--log-name", rrcheck_out_file) {}
+   else if VG_BOOL_CLO(arg, "--trace-mem",         clo_trace_mem) {}
+   else if VG_BOOL_CLO(arg, "--trace-reg",         clo_trace_reg) {}
+   else if VG_BOOL_CLO(arg, "--trace-superblocks", clo_trace_sbs) {}
    else
       return False;
 
@@ -116,14 +116,14 @@ static void rrcheck_post_clo_init(void)
    else /* replay */
       sres = VG_(open)(rrcheck_out_file, VKI_O_RDONLY, VKI_S_IRUSR|VKI_S_IWUSR);
 
-   if (sres.isError) {
+   if (sr_isError(sres)) {
       // If the file can't be opened for whatever reason, give up now.
       VG_(message)(Vg_UserMsg,
          "error: can't open output file '%s'",
          rrcheck_out_file );
       VG_(exit)(1);
    } else {
-      fd = sres.res;
+      fd = sr_Res(sres);
    }   
 }
 
@@ -211,9 +211,9 @@ static Bool checkWithNextLogLine(Char* rt_line, Bool print)
       {
          Addr tmp_addr = 0;
          if(buf[0] == 'I')
-            tmp_addr = VG_(atoll16)(&buf[3]);
+            tmp_addr = VG_(strtoll16)(&buf[3], NULL);
          else if(buf[0] == 'S' && buf[1] == 'B')
-            tmp_addr = VG_(atoll16)(&buf[4]);
+            tmp_addr = VG_(strtoll16)(&buf[4], NULL);
          if(tmp_addr > 0){
             VG_(printf)("Logged instruction address: 0x%08lX\n", tmp_addr);
             get_debug_info(tmp_addr, file, fn, &line);
