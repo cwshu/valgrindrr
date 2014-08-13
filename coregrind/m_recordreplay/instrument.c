@@ -116,32 +116,32 @@ IRSB* VG_(instrumentRecordReplay) ( void* closureV,
                d->cee->addr = (void*)RR_x86g_dirtyhelper_RDTSC;
             /* if found FXSAVE, CPUID, IN, OUT, just assert(0) to remind us of
                which sensitive instruction is found and should be dealed with */
-            if(d->cee->addr == (void*)x86g_dirtyhelper_FXSAVE)
+            if(d->cee->addr == (void*)x86g_dirtyhelper_FXSAVE);
                /* TODO: add RR version of x86g_dirtyhelper_FXSAVE */ 
-               vg_assert(0);
-            if(d->cee->addr == (void*)x86g_dirtyhelper_CPUID_sse0)
-               vg_assert(0);
-            if(d->cee->addr == (void*)x86g_dirtyhelper_CPUID_sse1)
-               vg_assert(0);
-            if(d->cee->addr == (void*)x86g_dirtyhelper_CPUID_sse2)
-               vg_assert(0);
-            if(d->cee->addr == (void*)x86g_dirtyhelper_IN)
-               vg_assert(0);
-            if(d->cee->addr == (void*)x86g_dirtyhelper_OUT)
-               vg_assert(0);
+               // vg_assert(0);
+            if(d->cee->addr == (void*)x86g_dirtyhelper_CPUID_sse0);
+               // vg_assert(0);
+            if(d->cee->addr == (void*)x86g_dirtyhelper_CPUID_sse1);
+               // vg_assert(0);
+            if(d->cee->addr == (void*)x86g_dirtyhelper_CPUID_sse2);
+               // vg_assert(0);
+            if(d->cee->addr == (void*)x86g_dirtyhelper_IN);
+               // vg_assert(0);
+            if(d->cee->addr == (void*)x86g_dirtyhelper_OUT);
+               // vg_assert(0);
 #elif defined(VGA_amd64)
             if(d->cee->addr == (void*)amd64g_dirtyhelper_RDTSC)
                d->cee->addr = (void*)RR_amd64g_dirtyhelper_RDTSC;
             /* if found FXSAVE, CPUID, IN, OUT, just assert(0) to remind us of
                which sensitive instruction is found and should be dealed with */
-            if(d->cee->addr == (void*)amd64g_dirtyhelper_FXSAVE)
-               vg_assert(0);
-            if(d->cee->addr == (void*)amd64g_dirtyhelper_CPUID)
-               vg_assert(0);
-            if(d->cee->addr == (void*)amd64g_dirtyhelper_IN)
-               vg_assert(0);
-            if(d->cee->addr == (void*)amd64g_dirtyhelper_OUT)
-               vg_assert(0);
+            if(d->cee->addr == (void*)amd64g_dirtyhelper_FXSAVE);
+               // vg_assert(0);
+            if(d->cee->addr == (void*)amd64g_dirtyhelper_CPUID);
+               // vg_assert(0);
+            if(d->cee->addr == (void*)amd64g_dirtyhelper_IN);
+               // vg_assert(0);
+            if(d->cee->addr == (void*)amd64g_dirtyhelper_OUT);
+               // vg_assert(0);
 #endif
             addStmtToIRSB( sbOut, st );
             break;
