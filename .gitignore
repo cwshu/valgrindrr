@@ -75,7 +75,6 @@ docs/index.ps
 
 # unknown, add to .gitignore temporarily
 VEX/pub/libvex_guest_offsets.h
-memcheck/tests/filter_memcpy
 memcheck/tests/strchr.stderr.exp-darwin
 none/tests/mips32/mips32_dsp.stdout.exp
 none/tests/mips32/mips32_dsp.stdout.exp-mips32
