@@ -106,6 +106,10 @@ IRSB* VG_(instrumentRecordReplay) ( void* closureV,
          case Ist_IMark:
          case Ist_WrTmp:
          case Ist_Store:
+         case Ist_LoadG:
+         case Ist_StoreG:
+         case Ist_CAS:
+         case Ist_LLSC:
             addStmtToIRSB( sbOut, st );
             break;
 
