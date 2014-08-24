@@ -161,7 +161,7 @@ void ML_(readFromLog)(LogEntry* rt_ent)
    }
    else if(rt_ent->type == CLIENT_CMDLINE){
       UInt len = rt_ent->u.client_cmdline.len;
-      rt_ent->u.client_cmdline.addr = (Char*)VG_(malloc)(NULL, len+1);
+      rt_ent->u.client_cmdline.addr = (Char*)VG_(malloc)("rr.load_record_data", len+1);
       ret = VG_(read)(ML_(log_fd_rr), rt_ent->u.client_cmdline.addr, len);
       vg_assert2(ret == len, "Error in reading replay log\n"); 
       rt_ent->u.client_cmdline.addr[len] = '\0';
