@@ -7,10 +7,12 @@ make patch to Valgrind core to let it support RR.
 
 We want to use record-replay functionality with vgdb for debugging.
 
-``valgrindrr_porting`` branch is the plan for porting `Mojiong's valgrindrr`_ (for valgrind 3.3) to valgrind 3.9.
+We are now doing the plan on ``valgrindrr_porting`` branch which is porting `Mojiong's valgrindrr`_ (for valgrind 3.3) to valgrind 3.9.
 
+valgrindrr_porting branch
+-------------------------
 building step
--------------
++++++++++++++
 same as valgrind. refer to `build valgrind tool`_
 
 :: 
@@ -22,10 +24,8 @@ same as valgrind. refer to `build valgrind tool`_
 
 The executable is ``inst/bin/valgrind``.
 
-testing
--------
-valgrindrr_porting branch
-+++++++++++++++++++++++++
+testing command
++++++++++++++++
 - record::
 
     valgrind --record-replay=1 --log-file-rr=<log_file> <exe> <exe_args>
@@ -36,6 +36,13 @@ valgrindrr_porting branch
 
     valgrind --record-replay=2 --log-file-rr=<log_file>
 
+testing scenario
+++++++++++++++++
+RR functionality testing codes are in ``rr_testcode`` directory.
+
+- bugs
+    - #1 is for localtime_test.c, the part of ``/bin/date`` program
+    - #2 is for file_IO.c.
 
 
 .. _Mojiong's valgrindrr: http://sourceforge.net/p/valgrind/mailman/valgrind-developers/thread/BAY103-W4642373BA0DDCC8326A9A0AA420@phx.gbl/
