@@ -141,8 +141,8 @@ void ML_(readFromLog)(LogEntry* rt_ent)
       case DATA2:
          vg_assert2(rt_ent->u.data.len == recorded->u.data.len, "Log entry not expected."
                       "Data len: runtime/recorded=%d/%d\n", rt_ent->u.data.len, recorded->u.data.len);
-         vg_assert2(rt_ent->u.data.addr == recorded->u.data.addr, "Log entry not expected."
-                      "Data addr: runtime/recorded=%X/%X\n", rt_ent->u.data.addr, recorded->u.data.addr);
+         // vg_assert2(rt_ent->u.data.addr == recorded->u.data.addr, "Log entry not expected."
+         //             "Data addr: runtime/recorded=%X/%X\n", rt_ent->u.data.addr, recorded->u.data.addr);
          break;
 
       case DATA1:
