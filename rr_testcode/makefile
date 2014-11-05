@@ -1,11 +1,14 @@
 CC = gcc
 CFLAGS = -g
-SIMPLE_C_TESTCODE = std_input file_IO localtime_test
+TESTCODE_SRC = $(wildcard *.c)
+TESTCODE = $(patsubst %.c,%,$(TESTCODE_SRC))
 
-all: ${SIMPLE_C_TESTCODE}
+all: $(TESTCODE)
 
 clean: 
-	rm -f ${SIMPLE_C_TESTCODE}
+	rm -f $(TESTCODE)
 
-%: %.c
+$(TESTCODE): %: %.c
 	${CC} ${CFLAGS} $< -o $@
+
+.PNOHY: all clean
