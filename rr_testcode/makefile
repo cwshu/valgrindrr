@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g
+CFLAGS = -g -m32
 TESTCODE_SRC = $(wildcard *.c)
 TESTCODE = $(patsubst %.c,%,$(TESTCODE_SRC))
 

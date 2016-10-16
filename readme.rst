@@ -11,16 +11,27 @@ We are now doing the plan on ``valgrindrr_porting`` branch which is porting `Moj
 
 valgrindrr_porting branch
 -------------------------
+
+valgrindrr only support 32bits platform currently, but we can use it on 64bits linux to debug 32bits binary.
+
 building step
 +++++++++++++
-same as valgrind. refer to `build valgrind tool`_
 
-:: 
+- i386 linux:: 
     
     ./autogen.sh
     ./configure --prefix=`pwd`/inst
     make
     make install
+
+- amd64 linux::
+
+    ./autogen.sh
+    ./configure --prefix=`pwd`/inst --build=i386-linux
+    make
+    make install
+
+- ref: valgrind's build step: `build valgrind tool`_
 
 The executable is ``inst/bin/valgrind``.
 
