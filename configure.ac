@@ -132,11 +132,8 @@ fi
 AM_CONDITIONAL(COMPILER_IS_CLANG, test $is_clang = clang)
 
 case "${is_clang}-${gcc_version}" in
-     notclang-3.*)
-	AC_MSG_RESULT([ok (${gcc_version})])
-	;;
-     notclang-4.*)
-	AC_MSG_RESULT([ok (${gcc_version})])
+     notclang-[[3-9]].*|notclang-[[1-9][0-9]]*)
+        AC_MSG_RESULT([ok (${gcc_version})])
 	;;
      clang-2.9|clang-3.*|clang-4.*)
 	AC_MSG_RESULT([ok (clang-${gcc_version})])
@@ -276,20 +273,14 @@ case "${host_os}" in
         kernel=`uname -r`
 
         case "${kernel}" in
-             2.6.*|3.*) 
-        	    AC_MSG_RESULT([2.6.x/3.x family (${kernel})])
-        	    AC_DEFINE([KERNEL_2_6], 1, [Define to 1 if you're using Linux 2.6.x or Linux 3.x])
-        	    ;;
+             0.*|1.*|2.0.*|2.1.*|2.2.*|2.3.*|2.4.*|2.5.*) 
+                    AC_MSG_RESULT([unsupported (${kernel})])
+                    AC_MSG_ERROR([Valgrind needs a Linux kernel >= 2.6])
+                    ;;
 
-             2.4.*) 
-        	    AC_MSG_RESULT([2.4 family (${kernel})])
-        	    AC_DEFINE([KERNEL_2_4], 1, [Define to 1 if you're using Linux 2.4.x])
-        	    ;;
-
-             *) 
-        	    AC_MSG_RESULT([unsupported (${kernel})])
-        	    AC_MSG_ERROR([Valgrind works on kernels 2.4, 2.6])
-        	    ;;
+             *)
+                    AC_MSG_RESULT([2.6 or later (${kernel})])
+                    ;;
         esac
 
         ;;
@@ -772,7 +763,7 @@ if test x$ac_cv_header_features_h = xyes; then
 glibc version is: __GLIBC__ __GLIBC_MINOR__
 #endif
 _ACEOF
-  GLIBC_VERSION="`$CPP conftest.$ac_ext | $SED -n 's/^glibc version is: //p' | $SED 's/ /./g'`"
+  GLIBC_VERSION="`$CPP -P conftest.$ac_ext | $SED -n 's/^glibc version is: //p' | $SED 's/ /./g'`"
 fi
 
 # not really a version check
@@ -797,127 +788,117 @@ AC_MSG_CHECKING([the GLIBC_VERSION version])
 
 case "${GLIBC_VERSION}" in
      2.2)
-	AC_MSG_RESULT(2.2 family)
-	AC_DEFINE([GLIBC_2_2], 1, [Define to 1 if you're using glibc 2.2.x])
-	DEFAULT_SUPP="glibc-2.2.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.2-LinuxThreads-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
-
+        AC_MSG_RESULT(2.2 family)
+        DEFAULT_SUPP="glibc-2.2.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.2-LinuxThreads-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.3)
-	AC_MSG_RESULT(2.3 family)
-	AC_DEFINE([GLIBC_2_3], 1, [Define to 1 if you're using glibc 2.3.x])
-	DEFAULT_SUPP="glibc-2.3.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
-
+        AC_MSG_RESULT(2.3 family)
+        DEFAULT_SUPP="glibc-2.3.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.4)
-	AC_MSG_RESULT(2.4 family)
-	AC_DEFINE([GLIBC_2_4], 1, [Define to 1 if you're using glibc 2.4.x])
-	DEFAULT_SUPP="glibc-2.4.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
-
+        AC_MSG_RESULT(2.4 family)
+        DEFAULT_SUPP="glibc-2.4.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.5)
-	AC_MSG_RESULT(2.5 family)
-	AC_DEFINE([GLIBC_2_5], 1, [Define to 1 if you're using glibc 2.5.x])
-	DEFAULT_SUPP="glibc-2.5.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.5 family)
+        DEFAULT_SUPP="glibc-2.5.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.6)
-	AC_MSG_RESULT(2.6 family)
-	AC_DEFINE([GLIBC_2_6], 1, [Define to 1 if you're using glibc 2.6.x])
-	DEFAULT_SUPP="glibc-2.6.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.6 family)
+        DEFAULT_SUPP="glibc-2.6.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.7)
-	AC_MSG_RESULT(2.7 family)
-	AC_DEFINE([GLIBC_2_7], 1, [Define to 1 if you're using glibc 2.7.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.7 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.8)
-	AC_MSG_RESULT(2.8 family)
-	AC_DEFINE([GLIBC_2_8], 1, [Define to 1 if you're using glibc 2.8.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.8 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.9)
-	AC_MSG_RESULT(2.9 family)
-	AC_DEFINE([GLIBC_2_9], 1, [Define to 1 if you're using glibc 2.9.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.9 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.10)
-	AC_MSG_RESULT(2.10 family)
-	AC_DEFINE([GLIBC_2_10], 1, [Define to 1 if you're using glibc 2.10.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.10 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.11)
-	AC_MSG_RESULT(2.11 family)
-	AC_DEFINE([GLIBC_2_11], 1, [Define to 1 if you're using glibc 2.11.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        AC_MSG_RESULT(2.11 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
         ;;
      2.12)
-	AC_MSG_RESULT(2.12 family)
-	AC_DEFINE([GLIBC_2_12], 1, [Define to 1 if you're using glibc 2.12.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.12 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.13)
-	AC_MSG_RESULT(2.13 family)
-	AC_DEFINE([GLIBC_2_13], 1, [Define to 1 if you're using glibc 2.13.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.13 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.14)
-	AC_MSG_RESULT(2.14 family)
-	AC_DEFINE([GLIBC_2_14], 1, [Define to 1 if you're using glibc 2.14.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.14 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.15)
-	AC_MSG_RESULT(2.15 family)
-	AC_DEFINE([GLIBC_2_15], 1, [Define to 1 if you're using glibc 2.15.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.15 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.16)
-	AC_MSG_RESULT(2.16 family)
-	AC_DEFINE([GLIBC_2_16], 1, [Define to 1 if you're using glibc 2.16.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.16 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.17)
-	AC_MSG_RESULT(2.17 family)
-	AC_DEFINE([GLIBC_2_17], 1, [Define to 1 if you're using glibc 2.17.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.17 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      2.18)
-	AC_MSG_RESULT(2.18 family)
-	AC_DEFINE([GLIBC_2_18], 1, [Define to 1 if you're using glibc 2.18.x])
-	DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
-	DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
-	;;
+        AC_MSG_RESULT(2.18 family)
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
+     2.*)
+        AC_MSG_RESULT(${GLIBC_VERSION} family)
+        AC_DEFINE([GLIBC_MANDATORY_STRLEN_REDIRECT], 1,
+              [Define to 1 if strlen() has been optimized heavily (amd64 glibc >= 2.10)])
+        AC_DEFINE([GLIBC_MANDATORY_INDEX_AND_STRLEN_REDIRECT], 1,
+              [Define to 1 if index() and strlen() have been optimized heavily (x86 glibc >= 2.12)])
+        DEFAULT_SUPP="glibc-2.X.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.34567-NPTL-helgrind.supp ${DEFAULT_SUPP}"
+        DEFAULT_SUPP="glibc-2.X-drd.supp ${DEFAULT_SUPP}"
+        ;;
      darwin)
 	AC_MSG_RESULT(Darwin)
 	AC_DEFINE([DARWIN_LIBC], 1, [Define to 1 if you're using Darwin])
